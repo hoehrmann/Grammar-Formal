@@ -20,6 +20,12 @@ has 'user_data' => (
   required => 0,
 );
 
+has 'position' => (
+  is => 'ro',
+  isa => 'Int',
+  required => 0,
+);
+
 #####################################################################
 # Base package for unary operators
 #####################################################################
@@ -177,6 +183,7 @@ sub expand {
     next unless $p->isa('Grammar::Formal::Grammar');
     return $p->rules->{$self->ref} if $p->rules->{$self->ref};
   }
+  warn "rule expansion for " . $self->ref . " failed.";
   return
 }
 
@@ -220,6 +227,7 @@ has 'rules' => (
 sub set_rule {
   my ($self, $name, $value) = @_;
   $self->rules->{$name} = $value;
+  $value->_set_parent($self);
 }
 
 # TODO: validate that rules include start symbol?
@@ -228,43 +236,43 @@ sub set_rule {
 # Factory methods
 #####################################################################
 sub NotAllowed {
-  my ($self) = @_;
-  Grammar::Formal::NotAllowed->new();
+  my ($self, @o) = @_;
+  Grammar::Formal::NotAllowed->new(@o);
 }
 
 sub Empty {
-  my ($self) = @_;
-  Grammar::Formal::Empty->new();
+  my ($self, @o) = @_;
+  Grammar::Formal::Empty->new(@o);
 }
 
 sub Whatever {
-  my ($self) = @_;
-  Grammar::Formal::Whatever->new();
+  my ($self, @o) = @_;
+  Grammar::Formal::Whatever->new(@o);
 }
 
 sub Choice {
-  my ($self, $p1, $p2) = @_;
-  Grammar::Formal::Choice->new(p1 => $p1, p2 => $p2);
+  my ($self, $p1, $p2, @o) = @_;
+  Grammar::Formal::Choice->new(p1 => $p1, p2 => $p2, @o);
 }
 
 sub Group {
-  my ($self, $p1, $p2) = @_;
-  Grammar::Formal::Group->new(p1 => $p1, p2 => $p2);
+  my ($self, $p1, $p2, @o) = @_;
+  Grammar::Formal::Group->new(p1 => $p1, p2 => $p2, @o);
 }
 
 sub Optional {
-  my ($self, $p) = @_;
-  $self->Choice($self->Empty, $p);
+  my ($self, $p, @o) = @_;
+  $self->Choice($self->Empty, $p, @o);
 }
 
 sub OneOrMore {
-  my ($self, $p) = @_;
-  Grammar::Formal::OneOrMore->new(p => $p);
+  my ($self, $p, @o) = @_;
+  Grammar::Formal::OneOrMore->new(p => $p, @o);
 }
 
 sub ZeroOrMore {
-  my ($self, $p) = @_;
-  Grammar::Formal::ZeroOrMore->new(p => $p);
+  my ($self, $p, @o) = @_;
+  Grammar::Formal::ZeroOrMore->new(p => $p, @o);
 }
 
 #####################################################################
@@ -347,9 +355,15 @@ has 'spans'  => (
 );
 
 sub from_numbers {
-  my ($class, $g, @numbers) = @_;
+  my ($class, @numbers) = @_;
   my $spans = Set::IntSpan->new([@numbers]);
-  return $class->new(grammar => $g, spans => $spans);
+  return $class->new(spans => $spans);
+}
+
+sub from_numbers_pos {
+  my ($class, $pos, @numbers) = @_;
+  my $spans = Set::IntSpan->new([@numbers]);
+  return $class->new(spans => $spans, position => $pos);
 }
 
 #####################################################################
@@ -362,7 +376,7 @@ use Moose;
 
 extends 'Grammar::Formal::Grammar';
 
-our $VERSION = '0.01';
+our $VERSION = '0.03';
 
 1;
 
